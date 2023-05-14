@@ -1,0 +1,37 @@
+---
+- name: Get public IP
+  community.general.ipify_facts:
+    timeout: 20
+  register: ipify_result
+  retries: 5
+  until: "ipify_result is not failed"
+  delay: 2
+
+- name: Restart sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+  when: ssh_public_key is defined
+
+- name: Notify the user
+  block:
+    - name: Schedule a reboot if required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Specify the action after user input
+      ansible.builtin.set_fact:
+        notify_action: "reboot to install the kernel updates"
+      when: reboot_required.stat.exists
+
+    - name: Specify the action after user input
+      ansible.builtin.set_fact:
+        notify_action: "restart the SSH daemon to apply its settings"
+      when: not reboot_required.stat.exists
+
+    - name: Reboot the system if updates are pending
+      when: reboot_required.stat.exists
+      changed_when: true
+      ansible.builtin.command:
+        cmd: reboot

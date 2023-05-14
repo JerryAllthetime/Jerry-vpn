@@ -1,0 +1,22 @@
+#!/usr/bin/env
+---
+
+- name: Install and configure
+  hosts: all
+  become: true
+
+  vars_files:
+    - secret.yml
+
+  roles:
+    - role: authelia
+      tags:
+        - authelia
+
+    - role: wireguard
+      tags:
+        - wireguard
+
+    - role: ssh
+      tags:
+        - ssh
